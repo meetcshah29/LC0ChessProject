@@ -1,0 +1,390 @@
+%YAML 1.2
+---
+    
+    #EARLY RELEASE###########################################################################
+    # If you are reading this, this guided-example.yaml is still a work in progress,
+    # Please read it over and make add corrections/improvements/explanations/recommended 
+    # parameter values and share it back via PM to 12341234 on discord.  Eventually this .yaml
+    # will help jumpstart new trainers and reduce the amount redundant work answering the same
+    # questions on discord.
+    #########################################################################################
+
+    #CREDITS#################################################################################
+    # This .yaml was produced by the hard work of many contributor from the Leela Chess Discord Channel
+    #########################################################################################
+    
+    #----------------------------------------------------------------------------------------#
+    #----------------------------------------------------------------------------------------#
+
+    #WELCOME#################################################################################
+    # Welcome to the training configuration example.yaml!  Here you can experiment on various 
+    # training parameters.  Each parameter is commented to help you better understand the params
+    # and values. If you are just starting, you can leave most the values as they are, (just change
+    # "YOURUSERNAME" and YOURPATH). Try and familiarize yourself with the options avaiable below.  
+    # Happy training!
+    #########################################################################################
+
+    #INITIAL SETUP###########################################################################
+    # Choose a name which properly reflects the parameters of your training.  In this examples
+    # I use "ex" for example, separated by a dash (ideally use no spaces in the name)
+    # and 64x6 for the network size, which is defined at the end of this configuration file.
+    # I added se4 to show the parameter "squeeze/excite" is at a ratio of 4
+    # Of course you can come up with your own logical convention or fun ones such as terminator
+    # or Cyberdyne Systems Model 101, but try to add meta information to help identify specific
+    # training parameters, such as Schwarzenegger-64x6-se10, etc...
+    name: 'ex-64x6-se4'       
+    #----------------------------------------------------------------------------------------
+    # gpu: 0, sets the GPU ID to use for training. Leela can only can use 1 GPU for training
+    gpu: 0
+    ##########################################################################################
+        
+
+# dataset section is a group of parameters which control the input data for training and testing
+dataset: 
+
+    #TRAINING/TESTING DATA#####################################################################
+    # input Edit directory path to reflect your prepared data
+    input: 'C:\Users\YOURUSERNAME\lczero-training\t60data\t60preppeddata\'
+    #----------------------------------------------------------------------------------------
+    # train_ratio value is the proportion of data divided between training and testing.
+    # This example.yaml is setup for a one-shot run with all data in one directory.
+    # .65=65% training /35% testing, .70=70/30, .80=80/20, .90=90/10, etc...
+    train_ratio: 0.90                   
+    #----------------------------------------------------------------------------------------
+    # For manully setting up separated test and train data, uncomment input_train and input_test below
+    # and comment out train_ratio and train above
+    # You can randomly choose what data goes into what folder, but it should be in the proportion 
+    # you desire (see training set ratio for example proportions)
+    # input_train: 'C:\Users\YOURUSERNAME\lczero-training\t60data\t60preppeddata\train\' # supports glob
+    # input_test: 'C:\Users\YOURUSERNAME\lczero-training\t60data\t60preppeddata\test\'  # supports glob  
+    # Manually setting up test and train directories allows you to have more control over what data is
+    # used for testing and training.
+    ############################################################################################
+    
+    
+    #CHUNKS###################################################################################
+    # Chunks are input samples needed for training.  For Leela these samples come from chunk files
+    # which have at least one and sometimes many games.  Samples are positions selected randomly
+    # from the games in the chunk files.  
+    #----------------------------------------------------------------------------------------
+    # num_chunks specifies the number of chunks from which to select samples. It uses only the X most
+    # recent chunks to parse for rolling training that the RL (reinforcement learning) method uses.
+    # For instance, if you have 10 million games in the training path, it only uses X most # recent ones.
+    # Advanced info: It is quite common to train with hundreds of thousands of chunk files.
+    # When starting training, the code will create a list of all the files and then sort them by
+    # date/time stamp.  This can take a considerable amount of time.  Consuming the files in order 
+    # is important for reinforcement learning (RL) and less so for supervised learning (SL).   
+    # So, if you are doing SL, you can just comment out the sort in train.py currently at lines 51 
+    # and 62 [chunks.sort(key=os.path.getmtime, reverse=True)] and it will run much faster.  
+    # Also, Windows typically slows down with more than about 30-50,000 files in a directory, so use
+    # a multi-tier directory structure for a large number of files.  If you get the not enough chunks
+    # message with zero, it usually means there is an error in the input: parameter string pointing to
+    # the top chunk file directory.  Because syntax errors are common (at least for me), I like to comment
+    # out the sort to make sure the chunk files are being found first, and then restart training with 
+    # the sort if doing RL.
+    num_chunks: 100000                  
+    # -----------------------------------------------------------------------------------------
+    # allow_less_chunks: true allows the training to proceed even if there are fewer chunk files than 
+    # num_chunks, as will almost always be the case. Earlier versions of the training code did not
+    # have this option and training would fail with a not enough chunks message. 
+    allow_less_chunks: true
+    # num_chunks_train sets the value of the amount of chunks to be used for training data.
+    # this is not needed if you are using the train_ratio set.
+    #num_chunks_train: 10000000
+    # num_chunks_train sets the value of the amount of chunks to be used for training data.
+    # Also not needed if you are using the train_ratio set.
+    #num_chunks_test: 500000
+    ########################################################################################### 
+
+    
+    # ADVANCED DATA OPTIONS ###################################################################
+    # The games in PGN format are converted in input bit planes in the chunk files during self-play
+    # (controlled by the client) or using the trainingdata-tool (typically for SL).  During training
+    # the input bit planes are converted into tensor format for Tensorflow processing.  This is done
+    # one of two ways.  The most recent training code uses protobufs. 
+    # experimental_v5_only_dataset automatically creates workers for reading and converting input. 
+    # The older way uses the chunkparser.py code, which is part of a Python generator to provide the 
+    # samples and uses additional processes called workers.  Reading and converting the input chunk files
+    # can constrain training performance, so more workers is generally good.  In addition, is is best to
+    # keep them on a fast SSD disk.  More workers can be created than physical cores, depending on your
+    # system, so experiment. First get training working at using the most simple options, then experiment
+    # and try different things to train faster.  Training speed for smaller nets (10b size) will often be
+    # limited by the disk reads or chunk processing in the CPU.  Larger nets will quickly become limited
+    # by the GPU speed. However, if you use the newer format the workers are created automatically.
+    # So, start with experimental_v5_only_dataset: true 
+    experimental_v5_only_dataset: true
+    #----------------------------------------------------------------------------------------
+    # train_workers manually specifies the number of workers to create for reading and converting the input
+    # for training
+    #train_workers=x
+    #----------------------------------------------------------------------------------------
+    # test_workers manually specifies the number of workers to create for reading and converting the input 
+    # for testing
+    #test_workers=x
+    #----------------------------------------------------------------------------------------
+    input_validation: 'C:\YOURDIRECTORY\validate_v5\'
+    ############################################################################################   
+   
+   
+# dataset section is a group of parameters which control the testing and training parameters   
+training:
+
+
+    #PATH SETUP###############################################################################
+    # path specifies where to save your networks and checkpoints
+    path: 'C:\Users\JonMi\lczero-training\mynetworks\'
+    ########################################################################################## 
+    
+    
+    #TEST POSITIONS###########################################################################
+    # Total number of steps for training
+    num_test_positions: 10000           
+    ##########################################################################################
+    
+    
+    #BATCH SETTINGS##################################################################################    
+    # batch_size: value specifies the number of training positions per step sent in parallel to the GPU.  
+    # A step is the fundamental training unit) my usual is 4096.
+    # A good rule of thumb is for every 1 Million training games, use 10k steps with 4096 batch,
+    # which is 40,960,000 positions sampled or just over 40 positions per game.  In the same way, with
+    # a 2048 batch use 20k steps. More sampling than this is may lead to overfitting from oversampling the # same games.
+    # Each training.tar from http://data.lczero.org/files/ contains about 10k games, so every 100 # training.tar files is roughly 1 million games.
+    batch_size: 4096                   
+    # num_batch_splits is a "technical trick" to avoid overflowing the GPU memory.  It divides the 
+    # batch_size into "splits".  Make sure batch_size divides evenly into num_batch_splits.  Although the
+    # training speed decrease is small, its best to use the smallest split your VRAM can handle.  A split
+    # of 4 (compared to 8) leaves 2x the VRAM headroom with little speed difference.  If the net
+    # is very small, num_batch_splits can be 1.  If the net is any decent size it needs to be higher.
+    num_batch_splits: 8                   
+    ##########################################################################################
+
+
+    #STOCHASTIC WEIGHT AVERAGING############################################################
+    # swa is a weight averaging method that is usually a good idea to apply, most nets use this.
+    # It averages weights over some number of recent sets of nets, with net sampling determined by 
+    # the parameters.  This “average net” will tend to be a little better than just taking the final net
+    # https://arxiv.org/pdf/1803.05407.pdf
+    swa: true    #----------------------------------------------------------------------------------------    
+    # swa_output turns on the stochastic weight averaging for weights outside of the optimization, averaging 
+    # the (non-active) weights over a number of defined steps.  This takes quite the computational resources
+    # but is generally desired and stronger than the weights created without this feature.  
+    swa_output: true                   
+    #----------------------------------------------------------------------------------------    
+    # swa steps specifies how many steps in are consecutively averaged
+    swa_steps: 20                       
+    #----------------------------------------------------------------------------------------    
+    # swa_max_n is the cap on n used in the 1/n multiplier for the current weights when merging them with 
+    # the current SWA weights.  First its 1/1 - all of it comes from the current weights, then 1/2 - half 
+    # and half - then 1/3, etc...  When it reaches n the network is the average of the last n sample points
+    # but once n becomes capped its a weighted average of all previous sample points. This is biased towards 
+    # more recent samples - but still theoretically has tiny contributions from samples all the way back. 
+    # In practice, floating point accuracy means that the old contributions can be ignored at some point.
+    # So for a swa_max_n of 10 it means networks farther back than the last 10 networks will not be 
+    # multiplied by 1/11, 1/12, 1/13 etc, but instead, 1/10.  The larger n is the less past averages
+    # affect the current swa network.  The smaller n is the more past averages affect the new swa average.
+    swa_max_n: 10                       
+    ##########################################################################################
+      
+      
+    #CONFIGURE STEP TRIGGERS##################################################################
+    # eval test set values after this many steps
+    test_steps: 2000                    
+    #---------------------------------------------------------------------------------------- 
+    # training reports values after this many steps.
+    train_avg_report_steps: 200         
+    #---------------------------------------------------------------------------------------- 
+    # validation_steps specifies how long the training will run.  
+    # Each step consists of a number of input samples.  This is the batch_size.  So, if the batch_size
+    # is 1024 and the number of steps is 100,000, then 102,400,000 input samples will be used.  
+    # Note that this is the number of sample positions, not games.  Each game has roughly 150 positions;
+    # even so, a large number of games is needed.  Not every position is used in a game.  In fact only
+    # every 32nd position generally is.  Generally, with machine learning (ML) the input samples are
+    # divided into several groups: training, testing, and validation.  The training samples are the ones
+    # used to do the actual learning.  The test samples are used every so often (test_steps parameter)
+    # to evaluate how well the net is doing against samples it has not seen before.  Sometimes the
+    # validation samples are also used. Like test_steps validation_steps specifies how often the
+    # validation data get used.  
+    # Also, note that the validation samples should be totally separate from any of the train and test
+    # data.  Tensorflow can produce graphs (using tensorboard) that show how the learning is progressing.
+    # The train, test and optional validation trends help to know when to change things to improve
+    # training, or not.  The validation_steps parameter is relatively new and can certainly be omitted
+    # until experimenting with more advanced training.  
+    # Finally, note that in general ML training is also measured in epochs.  An epoch is one run through
+    # all of the train/test/validation number of steps.  Then, training starts again with the somewhat
+    # smarter net using the same collection of input samples.  Most ML training runs for many epochs.
+    # With Leela, there is so much data that the epoch concept is not used.  So, when reading the papers
+    # about ML that give results after many epochs, keep in mind that the technique used may not work for
+    # Leela (which effectively is using just one epoch).
+    validation_steps: 2000              
+    #----------------------------------------------------------------------------------------     
+    # terminate (total) steps, for batch 4096 <10k steps per million games
+    total_steps: 140000                 
+    #----------------------------------------------------------------------------------------     
+    # optional frequency for checkpoints before finish
+    checkpoint_steps: 10000             
+    ##########################################################################################
+
+
+    #RENORMALIZATION##########################################################################
+    # Renormalizing outputs for residual layers, basically when activation values (not weights)
+    # for each layer are computed, it redistributes them to match some preferred distribution 
+    # (renormalizes). These should start low and gradually increase.
+    renorm: false
+    #---------------------------------------------------------------------------------------- 
+    #Start at renorm_max_r=1.0 renorm_max_d=0.0
+    #---------------------------------
+    #renorm_max_r=1.1 renorm_max_d=0.1
+    #renorm_max_r=1.2 renorm_max_d=0.2
+    #renorm_max_r=1.3 renorm_max_d=0.3
+    #renorm_max_r=1.4 renorm_max_d=0.4
+    #renorm_max_r=1.5 renorm_max_d=0.5
+    #(all of the above can happen during the 1st LR (0.2))
+    #---------------------------------
+    #renorm_max_r=1.7 renorm_max_d=0.7
+    #renorm_max_r=2.0 renorm_max_d=1.0
+    #renorm_max_r=3.0 renorm_max_d=2.5
+    #renorm_max_r=4.0 renorm_max_d=5.0
+    #(all of the above can happen during the 2nd LR (0.02))
+    #---------------------------------
+    #If continuing traing upon a relatively mature net, you can set to final values
+    #-------------------------------------------------------------------------------
+    #renorm_max_r: 4.0                  # gradually raise from 1.0 to 4.0
+    #renorm_max_d: 5.0                  # gradually raise from 0.0 to 5.0 
+    #max_grad_norm: 5.0                 # can be much higher than 2.0 after first LR  NEEDS MORE EXPLANATION
+    ##########################################################################################
+
+  
+    #LEARNING RATE############################################################################    
+    # The learning rate (LR) is a critical hyper-parameter in machine learning (ML).  This term is
+    # multiplied in the calculation to determine how much to change things after a step.  If the LR
+    # is too big, the steps will be too large and not converge to a good value (local or global minimum)
+    # as the net "bounces" around the solution space.  If the LR is too little, the net will converge,
+    # but very slowly.  And, it may get "stuck" at a local minimum and not be able to see past that to
+    # find a better minimum.  There are many papers and techniques about how to pick a starting learning
+    # rate, and how and when to change it during training.
+    #-------------------------------------------------------------------------------
+    # list of LR values
+    lr_values:                         
+        - 0.02
+        - 0.002
+        - 0.0005
+    #-------------------------------------------------------------------------------
+    # list of boundaries in steps
+    lr_boundaries:                     
+        - 100000                        # steps until 1st LR drop
+        - 130000                        # steps until 2nd LR drop
+    #-------------------------------------------------------------------------------    
+    # warmup_steps specifies how many steps to use before using the first value in the lr_values list until
+    # the number of steps exceeds the first value in the lr_boundaries list.  Since small LR values will
+    # head in a relatively good direction, small values are initially used during a "warm up" period to
+    # get the net started.  Use the default until value before attempting more advanced training.
+    warmup_steps: 250                  
+    ##########################################################################################
+ 
+
+    #LOSS WEIGHTS##############################################################################
+    # Each loss term measures how far the current net is from matching the training data,
+    # there is policy loss, value loss, moves left loss and (optionally) Q loss
+    # for each of those loss terms, a "backpropagation" method changes the net weights to better 
+    # match the training data
+    # the measurement is repeated on batch_size random positions from training data and the average
+    # losses are used backpropagation
+    # Each such batch is a "step"
+    # it isn't all that clear whether Q loss is useful, sometimes I use it and sometimes I don't
+    policy_loss_weight: 1.0            # weight of policy loss, value range: 0-1
+    #-------------------------------------------------------------------------------     
+    value_loss_weight:  1.0            # weight of value loss, values range: 0-1
+    #-------------------------------------------------------------------------------     
+    moves_left_loss_weight: 0.0        # weight of moves_left loss, values range: 0-1
+    ##########################################################################################
+
+   
+    #Q-RATIO##################################################################################
+    # The loss_weight of q ratio + z outcome = 1.
+    # Q = W-L (no draw)
+    # (ex: q_ratio of .35, sets z_outcome_loss_weight to .65)
+    q_ratio: 0.00                      
+    ##########################################################################################
+
+    
+    #SHUFFLE#############################################################################
+    #This controls the "Stochastic part of training, basically loading large sets of positions and randomizing their order.
+    # As positions get used in training, it replaces those with new random positions.
+    shuffle_size: 200000                # typcially 500k or more, but you can get away with alot less
+    ##########################################################################################
+    
+    
+    #MISCELLANEOUS###NEEDS SORTED TO PROPER CATEGORY IN .YAML, IF ONE EXISTS, OTHERWISE STAYS IN MISC##
+    # lookahead optimizer is not supported by Lczero published training scripts, it has not shown any
+    # significant improvements.
+    #lookahead_optimizer: false         
+    mask_legal_moves: true             # Filters out illegal moves.    NEEDS BETTER EXPLANATION
+    #-------------------------------------------------------------------------------
+    # precision: 'single' or 'half' specifies the floating point precision used in the training calculations.
+    # Single is tf.float32 and half is tf.float16  Some GPUs can use different precision formats
+    # faster than others.  Even with tf.float16 which is not a accurate as tf.float32, the key internal
+    # calculations requiring the most precision are done with tf.float32.
+    # Start with single and once training is working see how your GPU does with half.  
+    # It may not be supported or slower or faster.
+    precision: 'single'
+    #-------------------------------------------------------------------------------
+
+# model section is a group of parameters which control the architecture of the network
+model:
+    
+    
+    #NETWORK ARCHITECTURE#####################################################################
+    filters: 64                         # Number of filters
+    residual_blocks: 6                  # Number of blocks
+    #-------------------------------------------------------------------------------
+    se_ratio: 4                         #Squeeze Excite structural network architecture.
+    # (SE provides significant improvement with minimal speed costs.)
+    # The se-ratio should be based on the net size.  
+    #(Not all values are supported with the backend optimizations.)  A common/default value is 8
+    # You want the se_ratio to divide into your filters evenly, (at least a multiple of 8 32 and 64
+    # are popular target outcomes)
+    # A recent update to the codebase means that for 320 filters, SE ratio 10 and 5 are optimized 
+    # fp16 flows using a fused SE kernel)
+    ##########################################################################################
+    ##########################################################################################
+    
+    #POLICY##################################################################################  
+    # policy: the default is convolution with classical option.  
+    # policy: convolution allows skipping blocks.
+    policy: 'convolution'             
+    #policy: classical option does not have block skipping                
+    # policy_channels are only used with "policy: classical" architecture.  Default value is 32.
+    # The value is the number of outputs of a specific layer, in this case the policy head
+    # policy_channels: 80              
+    ##########################################################################################
+    ##########################################################################################
+    
+    #MISCELLANEOUS###NEEDS SORTED TO PROPER CATEGORY IN .YAML, IF ONE EXISTS, OTHERWISE STAYS IN MISC##    
+    # value: 'wdl' stands for )wins/draws/losses), default is value: 'wdl', can optionally be false. 
+    value: 'wdl'                          
+    # moves_left is a recent third type of head, in addition to policy and value.  It tries to predict
+    # game length to reduce endgame shuffling.  Default value is moves_left: 'v1', optional value is false.
+    moves_left: 'none'                    
+    # input_type default value is classic
+    # input_type: 'frc_castling' changes input format for FRC (Fischer Random Chess)
+    # input_type: 'canonical' changes input format so that enpassant is passed to the net, rather
+    # than inferred from history.  History is clipped at last 50 move reset or castling move.  If
+    # no castling rights, board is flipped to ensure your king is on the righthand side.  If no pawns
+    # (and no castling rights) board is flipped/mirrored/transposed to ensure king is in bottom right
+    # octant towards the middle.  If king  is on the diagonal, other rules apply to decide whether to
+    # transpose or not, to ensure a consistent view of the board is always given to the net.
+    # Also, the castling information is encoded for the net to understand FRC castling.
+    # input_type: 'canonical_100' is the same as 'canonical' but divide 50 move rule by 100 instead.
+    # input_type: 'ccanonical_armageddon' changes input format for armageddon chess variant
+    # More on input_type: 
+    # Self-play games are saved in PGN and bitplane format which is used for training.  There have been
+    # many bitplane versions.  These are the samples (positions) that are randomly picked from chunk file
+    # games.  After being generated by self-play, the chunk files are typically rescored.  The rescorer is
+    # a custom verision of Lc0 that checks syzygy and Gaviota tablebases (TBs)  to correct the results
+    # using the perfect information from the TBs.  After rescoring the chunks are finally ready for 
+    # training.  The versions should match. Rescorer is here: https://github.com/Tilps/lc0/tree/rescore_tb
+    # The rescorer 'up converts' versions not input types, 3 to 4 or 4 to 5 (with classical input type),
+    # 5 (classical) to 5 (canonical).  I would have to study the code more to see the difference between and input "type" and a "version"
+    input_type: 'canonical'               
+    ##########################################################################################
+    ##########################################################################################
